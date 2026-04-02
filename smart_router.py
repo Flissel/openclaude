@@ -44,6 +44,8 @@ class Provider:
     cost_per_1k_tokens: float        # estimated cost USD per 1k tokens
     big_model: str                   # model for sonnet/large requests
     small_model: str                 # model for haiku/small requests
+    base_url: str = ""               # base URL for chat completions API
+    completions_path: str = "/chat/completions"  # path appended to base_url
     latency_ms: float = 9999.0       # updated by benchmark
     healthy: bool = True             # updated by health checks
     request_count: int = 0           # total requests routed here
@@ -53,6 +55,11 @@ class Provider:
     @property
     def api_key(self) -> Optional[str]:
         return os.getenv(self.api_key_env)
+
+    @property
+    def completions_url(self) -> str:
+        """Full URL for chat completions requests."""
+        return (self.base_url.rstrip("/") + self.completions_path) if self.base_url else ""
 
     @property
     def is_configured(self) -> bool:
@@ -102,6 +109,7 @@ def build_default_providers() -> list[Provider]:
             cost_per_1k_tokens=0.002,
             big_model=big if "gpt" in big else "gpt-4.1",
             small_model=small if "gpt" in small else "gpt-4.1-mini",
+            base_url="https://api.openai.com/v1",
         ),
         Provider(
             name="gemini",
@@ -110,6 +118,7 @@ def build_default_providers() -> list[Provider]:
             cost_per_1k_tokens=0.0005,
             big_model=big if "gemini" in big else "gemini-2.5-pro",
             small_model=small if "gemini" in small else "gemini-2.0-flash",
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai",
         ),
         Provider(
             name="ollama",
@@ -118,6 +127,26 @@ def build_default_providers() -> list[Provider]:
             cost_per_1k_tokens=0.0,   # free — local
             big_model=big if "gemini" not in big and "gpt" not in big else "llama3:8b",
             small_model=small if "gemini" not in small and "gpt" not in small else "llama3:8b",
+            base_url=f"{ollama_url}/v1",
+        ),
+        Provider(
+            name="anthropic",
+            ping_url="https://api.anthropic.com/v1/messages",
+            api_key_env="ANTHROPIC_API_KEY",
+            cost_per_1k_tokens=0.003,
+            big_model="claude-sonnet-4-6",
+            small_model="claude-haiku-4-5",
+            base_url="https://api.anthropic.com/v1",
+            completions_path="/messages",  # Anthropic uses /messages not /chat/completions
+        ),
+        Provider(
+            name="openrouter",
+            ping_url="https://openrouter.ai/api/v1/models",
+            api_key_env="OPENROUTER_API_KEY",
+            cost_per_1k_tokens=0.001,
+            big_model="anthropic/claude-sonnet-4",
+            small_model="anthropic/claude-haiku-4-5",
+            base_url="https://openrouter.ai/api/v1",
         ),
     ]
 
@@ -291,6 +320,8 @@ class SmartRouter:
             "provider": provider.name,
             "model": model,
             "api_key": provider.api_key or "none",
+            "base_url": provider.base_url,
+            "completions_url": provider.completions_url,
             "provider_object": provider,
         }
 
