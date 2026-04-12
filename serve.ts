@@ -105,8 +105,19 @@ const server = Bun.serve({
         const proc = Bun.spawn(cmd, {
           cwd: import.meta.dir,
           env: {
-            ...process.env,
-            // Override model from request if provided
+            PATH: process.env.PATH,
+            HOME: process.env.HOME,
+            OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+            OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+            OPENAI_BASE_URL: process.env.OPENAI_BASE_URL,
+            OPENAI_MODEL: process.env.OPENAI_MODEL,
+            CLAUDE_CODE_USE_OPENAI: process.env.CLAUDE_CODE_USE_OPENAI,
+            ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL,
+            DISABLE_TELEMETRY: "1",
+            CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
+            HTTP_PROXY: process.env.HTTP_PROXY,
+            HTTPS_PROXY: process.env.HTTPS_PROXY,
+            NO_PROXY: process.env.NO_PROXY,
             ...(body.model ? { OPENAI_MODEL: body.model } : {}),
           },
           stdout: "pipe",
